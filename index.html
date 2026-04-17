@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fake News Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a2e;
+      --panel2:#0f1730;
+      --border:rgba(255,255,255,.10);
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.70);
+      --accent:#6aa6ff;
+      --accent2:#8b5cf6;
+      --good:#34d399;
+      --bad:#fb7185;
+      --shadow: 0 24px 80px rgba(0,0,0,.45);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:"DM Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(106,166,255,.35), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(139,92,246,.30), transparent 55%),
+        radial-gradient(800px 500px at 40% 120%, rgba(52,211,153,.18), transparent 55%),
+        linear-gradient(180deg, #070a14 0%, var(--bg) 100%);
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:40px 16px 64px}
+    .top{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 30px rgba(106,166,255,.18)}
+    h1{margin:0;font-size:22px;letter-spacing:-.02em}
+    .sub{margin:4px 0 0;color:var(--muted);max-width:58ch}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+    @media (max-width: 920px){.grid{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,rgba(18,26,46,.92),rgba(15,23,48,.86));border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .card-h{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .card-h strong{font-size:14px;letter-spacing:.02em}
+    .pill{font-family:"JetBrains Mono",monospace;font-size:12px;color:rgba(234,240,255,.85);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);padding:6px 10px;border-radius:999px}
+    .card-b{padding:18px}
+    label{display:block;margin:0 0 6px;color:rgba(234,240,255,.82);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+    input,textarea{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.18);color:var(--text);padding:12px 14px;font-size:15px;outline:none;transition:border-color .15s, box-shadow .15s}
+    textarea{min-height:220px;resize:vertical}
+    input:focus,textarea:focus{border-color:rgba(106,166,255,.70);box-shadow:0 0 0 4px rgba(106,166,255,.15)}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
+    .btn{border:0;cursor:pointer;font-weight:800;padding:12px 16px;border-radius:12px;color:#061020;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 14px 40px rgba(106,166,255,.18);transition:transform .12s ease, opacity .12s ease}
+    .btn:active{transform:scale(.98)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .ghost{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.18);box-shadow:none}
+    .hint{color:var(--muted);font-size:13px}
+    .err{display:none;margin-top:12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(251,113,133,.35);background:rgba(251,113,133,.10);color:rgba(255,200,210,.95);font-size:13px}
+    .err.show{display:block}
+    .result{display:none;padding:18px}
+    .result.show{display:block}
+    .verdict{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .big{font-size:22px;letter-spacing:-.02em;font-weight:900}
+    .badge{font-family:"JetBrains Mono",monospace;font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:rgba(234,240,255,.92)}
+    .badge.good{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10)}
+    .badge.bad{border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.10)}
+    .bars{margin-top:10px}
+    .bar{display:flex;align-items:center;gap:10px;margin:10px 0}
+    .name{width:54px;font-family:"JetBrains Mono",monospace;font-size:12px;color:rgba(234,240,255,.85)}
+    .track{flex:1;height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;border:1px solid rgba(255,255,255,.10)}
+    .fill{height:100%;width:0%;border-radius:999px;transition:width .35s ease}
+    .fill.good{background:linear-gradient(90deg,rgba(52,211,153,.9),rgba(52,211,153,.55))}
+    .fill.bad{background:linear-gradient(90deg,rgba(251,113,133,.9),rgba(251,113,133,.55))}
+    .pct{width:64px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+    .mini{margin-top:14px;color:var(--muted);font-size:12px;line-height:1.55}
+    .mini code{font-family:"JetBrains Mono",monospace;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Fake news detection</h1>
+          <p class="sub">Enter a headline and/or article text. The model returns <strong>REAL</strong> or <strong>FAKE</strong> with probability scores.</p>
+        </div>
+      </div>
+      <div class="pill">DistilBERT · binary classifier</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-h">
+          <strong>News input</strong>
+          <span class="pill" id="status">Ready</span>
+        </div>
+        <div class="card-b">
+          <form id="form" novalidate>
+            <label for="title">Headline (optional)</label>
+            <input id="title" type="text" placeholder="e.g. Breaking: Government announces new policy" autocomplete="off" />
+
+            <label for="text" style="margin-top:12px">Article text</label>
+            <textarea id="text" placeholder="Paste the news content here…"></textarea>
+
+            <div class="row">
+              <button class="btn" id="analyze" type="submit">Analyze</button>
+              <button class="btn ghost" id="clear" type="button">Clear</button>
+              <span class="hint">Tip: longer text usually improves accuracy.</span>
+            </div>
+            <div class="err" id="err"></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <strong>Prediction</strong>
+          <span class="pill" id="device">—</span>
+        </div>
+        <div class="result" id="result">
+          <div class="verdict">
+            <div class="big" id="verdict">—</div>
+            <div class="badge" id="badge">—</div>
+          </div>
+          <div class="bars" id="bars"></div>
+          <div class="mini" id="meta"></div>
+        </div>
+        <div class="card-b" id="empty">
+          <div class="mini">
+            Train once (creates <code>saved_model/</code>), then start the server.
+            <br /><br />
+            <code>python train_and_save.py --max-samples 5000</code><br/>
+            <code>python app.py</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const analyzeBtn = document.getElementById("analyze");
+    const clearBtn = document.getElementById("clear");
+    const err = document.getElementById("err");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const empty = document.getElementById("empty");
+    const verdict = document.getElementById("verdict");
+    const badge = document.getElementById("badge");
+    const bars = document.getElementById("bars");
+    const meta = document.getElementById("meta");
+    const device = document.getElementById("device");
+
+    function setStatus(t){ status.textContent = t; }
+    function showError(t){ err.textContent = t; err.classList.add("show"); }
+    function hideError(){ err.classList.remove("show"); }
+
+    clearBtn.addEventListener("click", () => {
+      document.getElementById("title").value = "";
+      document.getElementById("text").value = "";
+      hideError();
+      setStatus("Ready");
+      result.classList.remove("show");
+      empty.style.display = "block";
+    });
+
+    function addBar(name, value){
+      const pct = Math.max(0, Math.min(100, value * 100));
+      const isReal = name.toUpperCase() === "REAL";
+      const row = document.createElement("div");
+      row.className = "bar";
+      row.innerHTML = `
+        <div class="name">${name}</div>
+        <div class="track"><div class="fill ${isReal ? "good" : "bad"}"></div></div>
+        <div class="pct">${pct.toFixed(1)}%</div>
+      `;
+      bars.appendChild(row);
+      requestAnimationFrame(() => {
+        row.querySelector(".fill").style.width = pct + "%";
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const title = document.getElementById("title").value.trim();
+      const text = document.getElementById("text").value.trim();
+      if (!title && !text){
+        showError("Please enter a headline and/or article text.");
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      setStatus("Analyzing…");
+
+      try{
+        const res = await fetch("/predict", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({title, text})
+        });
+        const data = await res.json();
+        if (!res.ok){
+          showError(data.error || "Prediction failed.");
+          setStatus("Ready");
+          return;
+        }
+
+        empty.style.display = "none";
+        result.classList.add("show");
+        device.textContent = data.device || "—";
+
+        const label = data.label || "—";
+        const conf = (data.confidence ?? 0);
+        verdict.textContent = label === "REAL" ? "Likely REAL" : "Likely FAKE";
+        badge.textContent = "Confidence " + (conf * 100).toFixed(1) + "%";
+        badge.className = "badge " + (label === "REAL" ? "good" : "bad");
+
+        bars.innerHTML = "";
+        const probs = data.probabilities || {};
+        Object.keys(probs).sort().forEach(k => addBar(k, probs[k]));
+
+        meta.innerHTML = `Prediction ID: <code>${data.prediction_id}</code>`;
+        setStatus("Done");
+      }catch(_){
+        showError("Network error. Is the server running?");
+        setStatus("Ready");
+      }finally{
+        analyzeBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fake News Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a2e;
+      --panel2:#0f1730;
+      --border:rgba(255,255,255,.10);
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.70);
+      --accent:#6aa6ff;
+      --accent2:#8b5cf6;
+      --good:#34d399;
+      --bad:#fb7185;
+      --shadow: 0 24px 80px rgba(0,0,0,.45);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:"DM Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(106,166,255,.35), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(139,92,246,.30), transparent 55%),
+        radial-gradient(800px 500px at 40% 120%, rgba(52,211,153,.18), transparent 55%),
+        linear-gradient(180deg, #070a14 0%, var(--bg) 100%);
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:40px 16px 64px}
+    .top{
+      display:flex; gap:18px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:44px;height:44px;border-radius:14px;
+      background: linear-gradient(135deg, rgba(106,166,255,1), rgba(139,92,246,1));
+      box-shadow: 0 12px 30px rgba(106,166,255,.18);
+    }
+    h1{margin:0;font-size:22px;letter-spacing:-.02em}
+    .sub{margin:4px 0 0;color:var(--muted);max-width:58ch}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
+    @media (max-width: 920px){.grid{grid-template-columns:1fr}}
+    .card{
+      background: linear-gradient(180deg, rgba(18,26,46,.92), rgba(15,23,48,.86));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card-h{
+      padding:16px 18px;
+      border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    }
+    .card-h strong{font-size:14px;letter-spacing:.02em}
+    .pill{
+      font-family:"JetBrains Mono",monospace;
+      font-size:12px;
+      color:rgba(234,240,255,.85);
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      padding:6px 10px;border-radius:999px;
+    }
+    .card-b{padding:18px}
+    label{
+      display:block;
+      margin:0 0 6px;
+      color:rgba(234,240,255,.82);
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-weight:700;
+    }
+    input, textarea{
+      width:100%;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.18);
+      color:var(--text);
+      padding:12px 14px;
+      font-size:15px;
+      outline:none;
+      transition:border-color .15s, box-shadow .15s;
+    }
+    textarea{min-height:220px;resize:vertical}
+    input:focus, textarea:focus{
+      border-color: rgba(106,166,255,.70);
+      box-shadow: 0 0 0 4px rgba(106,166,255,.15);
+    }
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px}
+    .btn{
+      border:0;
+      cursor:pointer;
+      font-weight:800;
+      padding:12px 16px;
+      border-radius:12px;
+      color:#061020;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 14px 40px rgba(106,166,255,.18);
+      transition: transform .12s ease, opacity .12s ease;
+    }
+    .btn:active{transform:scale(.98)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .ghost{
+      background:transparent;color:var(--text);
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:none;
+    }
+    .hint{color:var(--muted);font-size:13px}
+    .err{
+      display:none;
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(251,113,133,.35);
+      background:rgba(251,113,133,.10);
+      color: rgba(255,200,210,.95);
+      font-size:13px;
+    }
+    .err.show{display:block}
+    .result{
+      display:none;
+      padding:18px;
+    }
+    .result.show{display:block}
+    .verdict{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .big{
+      font-size:22px;
+      letter-spacing:-.02em;
+      font-weight:900;
+    }
+    .badge{
+      font-family:"JetBrains Mono",monospace;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);
+      color:rgba(234,240,255,.92);
+    }
+    .badge.good{border-color: rgba(52,211,153,.35); background: rgba(52,211,153,.10)}
+    .badge.bad{border-color: rgba(251,113,133,.35); background: rgba(251,113,133,.10)}
+    .bars{margin-top:10px}
+    .bar{
+      display:flex; align-items:center; gap:10px;
+      margin:10px 0;
+    }
+    .name{width:54px; font-family:"JetBrains Mono",monospace; font-size:12px; color:rgba(234,240,255,.85)}
+    .track{
+      flex:1; height:10px; border-radius:999px;
+      background: rgba(255,255,255,.08);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .fill{height:100%; width:0%; border-radius:999px; transition: width .35s ease}
+    .fill.good{background: linear-gradient(90deg, rgba(52,211,153,.9), rgba(52,211,153,.55))}
+    .fill.bad{background: linear-gradient(90deg, rgba(251,113,133,.9), rgba(251,113,133,.55))}
+    .pct{width:64px; text-align:right; font-variant-numeric: tabular-nums; color:var(--muted); font-size:12px}
+    .mini{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.55;
+    }
+    .mini code{font-family:"JetBrains Mono",monospace; font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Fake news detection</h1>
+          <p class="sub">Enter a headline and/or article text. The model returns <strong>REAL</strong> or <strong>FAKE</strong> with probability scores.</p>
+        </div>
+      </div>
+      <div class="pill">DistilBERT · binary classifier</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-h">
+          <strong>News input</strong>
+          <span class="pill" id="status">Ready</span>
+        </div>
+        <div class="card-b">
+          <form id="form" novalidate>
+            <label for="title">Headline (optional)</label>
+            <input id="title" type="text" placeholder="e.g. Breaking: Government announces new policy" autocomplete="off" />
+
+            <label for="text" style="margin-top:12px">Article text</label>
+            <textarea id="text" placeholder="Paste the news content here…"></textarea>
+
+            <div class="row">
+              <button class="btn" id="analyze" type="submit">Analyze</button>
+              <button class="btn ghost" id="clear" type="button">Clear</button>
+              <span class="hint">Tip: longer text usually improves accuracy.</span>
+            </div>
+            <div class="err" id="err"></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <strong>Prediction</strong>
+          <span class="pill" id="device">—</span>
+        </div>
+        <div class="result" id="result">
+          <div class="verdict">
+            <div class="big" id="verdict">—</div>
+            <div class="badge" id="badge">—</div>
+          </div>
+          <div class="bars" id="bars"></div>
+          <div class="mini" id="meta"></div>
+        </div>
+        <div class="card-b" id="empty">
+          <div class="mini">
+            Run training once (creates <code>saved_model/</code>), then start the server.
+            <br /><br />
+            <code>python train_and_save.py --max-samples 5000</code><br/>
+            <code>python app.py</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const analyzeBtn = document.getElementById("analyze");
+    const clearBtn = document.getElementById("clear");
+    const err = document.getElementById("err");
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const empty = document.getElementById("empty");
+    const verdict = document.getElementById("verdict");
+    const badge = document.getElementById("badge");
+    const bars = document.getElementById("bars");
+    const meta = document.getElementById("meta");
+    const device = document.getElementById("device");
+
+    function setStatus(t){ status.textContent = t; }
+    function showError(t){ err.textContent = t; err.classList.add("show"); }
+    function hideError(){ err.classList.remove("show"); }
+
+    clearBtn.addEventListener("click", () => {
+      document.getElementById("title").value = "";
+      document.getElementById("text").value = "";
+      hideError();
+      setStatus("Ready");
+      result.classList.remove("show");
+      empty.style.display = "block";
+    });
+
+    function addBar(name, value){
+      const pct = Math.max(0, Math.min(100, value * 100));
+      const isReal = name.toUpperCase() === "REAL";
+      const row = document.createElement("div");
+      row.className = "bar";
+      row.innerHTML = `
+        <div class="name">${name}</div>
+        <div class="track"><div class="fill ${isReal ? "good" : "bad"}"></div></div>
+        <div class="pct">${pct.toFixed(1)}%</div>
+      `;
+      bars.appendChild(row);
+      requestAnimationFrame(() => {
+        row.querySelector(".fill").style.width = pct + "%";
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const title = document.getElementById("title").value.trim();
+      const text = document.getElementById("text").value.trim();
+      if (!title && !text){
+        showError("Please enter a headline and/or article text.");
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      setStatus("Analyzing…");
+
+      try{
+        const res = await fetch("/predict", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({title, text})
+        });
+        const data = await res.json();
+        if (!res.ok){
+          showError(data.error || "Prediction failed.");
+          setStatus("Ready");
+          return;
+        }
+
+        empty.style.display = "none";
+        result.classList.add("show");
+        device.textContent = data.device || "—";
+
+        const label = data.label || "—";
+        const conf = (data.confidence ?? 0);
+        verdict.textContent = label === "REAL" ? "Likely REAL" : "Likely FAKE";
+        badge.textContent = "Confidence " + (conf * 100).toFixed(1) + "%";
+        badge.className = "badge " + (label === "REAL" ? "good" : "bad");
+
+        bars.innerHTML = "";
+        const probs = data.probabilities || {};
+        const keys = Object.keys(probs);
+        if (keys.length){
+          keys.sort(); // show FAKE then REAL if those names exist
+          keys.forEach(k => addBar(k, probs[k]));
+        }
+
+        meta.innerHTML = `Prediction ID: <code>${data.prediction_id}</code>`;
+        setStatus("Done");
+      }catch(_){
+        showError("Network error. Is the server running?");
+        setStatus("Ready");
+      }finally{
+        analyzeBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fake News Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a222c;
+      --border: #2d3a47;
+      --text: #e8eef4;
+      --muted: #8fa3b5;
+      --accent: #3d9cf0;
+      --accent-dim: #2a6fa8;
+      --fake: #e85d5d;
+      --real: #4ecf8a;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: radial-gradient(ellipse 120% 80% at 50% -20%, #1a3048 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    header { margin-bottom: 2rem; }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 36ch;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #131b24;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    textarea {
+      min-height: 160px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.7rem 1.4rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: #fff;
+      transition: transform 0.12s, opacity 0.12s;
+    }
+    button:hover { opacity: 0.95; }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    .result.visible { display: block; }
+    .verdict {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .verdict.fake { color: var(--fake); }
+    .verdict.real { color: var(--real); }
+    .bars { margin-top: 1rem; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .bar-name { width: 3rem; font-family: "JetBrains Mono", monospace; }
+    .bar-track {
+      flex: 1;
+      height: 8px;
+      background: #131b24;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.35s ease;
+    }
+    .bar-fill.fake { background: var(--fake); }
+    .bar-fill.real { background: var(--real); }
+    .pct { width: 3.5rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+    .err {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(232, 93, 93, 0.12);
+      border: 1px solid rgba(232, 93, 93, 0.35);
+      border-radius: 8px;
+      color: #f0a8a8;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .err.visible { display: block; }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Fake news detector</h1>
+      <p class="sub">Paste a headline and article text. The model returns REAL or FAKE with confidence scores.</p>
+    </header>
+
+    <div class="card">
+      <form id="form" novalidate>
+        <label for="title">Headline (optional)</label>
+        <input type="text" id="title" name="title" placeholder="e.g. Breaking: Government announces new policy" autocomplete="off" />
+
+        <label for="text">Article text</label>
+        <textarea id="text" name="text" placeholder="Paste the news body here…"></textarea>
+
+        <div class="row">
+          <button type="submit" id="submit">Analyze</button>
+        </div>
+      </form>
+
+      <div class="err" id="err"></div>
+
+      <div class="result" id="result">
+        <div class="verdict" id="verdict"></div>
+        <p id="conf" style="margin:0; color: var(--muted); font-size: 0.95rem;"></p>
+        <div class="bars" id="bars"></div>
+      </div>
+    </div>
+
+    <footer>DistilBERT binary classifier · train once with <code style="font-family: JetBrains Mono, monospace; font-size: 0.85em;">train_and_save.py</code></footer>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const submit = document.getElementById("submit");
+    const err = document.getElementById("err");
+    const result = document.getElementById("result");
+    const verdict = document.getElementById("verdict");
+    const conf = document.getElementById("conf");
+    const bars = document.getElementById("bars");
+
+    function showError(msg) {
+      err.textContent = msg;
+      err.classList.add("visible");
+      result.classList.remove("visible");
+    }
+    function hideError() {
+      err.classList.remove("visible");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideError();
+      const title = document.getElementById("title").value.trim();
+      const text = document.getElementById("text").value.trim();
+      if (!title && !text) {
+        showError("Please enter a headline and/or article text.");
+        return;
+      }
+      submit.disabled = true;
+      try {
+        const res = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, text }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showError(data.error || "Request failed.");
+          return;
+        }
+        const isFake = data.label === "FAKE";
+        verdict.textContent = isFake ? "Likely FAKE" : "Likely REAL";
+        verdict.className = "verdict " + (isFake ? "fake" : "real");
+        conf.textContent =
+          "Model confidence for this label: " + (data.confidence * 100).toFixed(1) + "%";
+        const p = data.probabilities || {};
+        bars.innerHTML = "";
+        [["FAKE", p.FAKE], ["REAL", p.REAL]].forEach(([name, val]) => {
+          const pct = ((val || 0) * 100).toFixed(1);
+          const row = document.createElement("div");
+          row.className = "bar-row";
+          row.innerHTML =
+            '<span class="bar-name">' + name + '</span>' +
+            '<div class="bar-track"><div class="bar-fill ' + name.toLowerCase() + '" style="width:0%"></div></div>' +
+            '<span class="pct">' + pct + "%</span>";
+          bars.appendChild(row);
+        });
+        requestAnimationFrame(() => {
+          bars.querySelectorAll(".bar-fill").forEach((el, i) => {
+            const v = i === 0 ? p.FAKE : p.REAL;
+            el.style.width = ((v || 0) * 100) + "%";
+          });
+        });
+        result.classList.add("visible");
+      } catch {
+        showError("Network error. Is the server running?");
+      } finally {
+        submit.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
